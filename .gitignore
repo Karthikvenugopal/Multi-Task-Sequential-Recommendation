@@ -1,0 +1,34 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Claude
+.claude/
+
+# Data
+data/processed/
+data/*.gz
+data/*.jsonl
+
+# Model artifacts
+checkpoints/
+*.pt
+*.onnx
+
+# MLflow
+mlruns/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/training_curves.png
+notebooks/metric_comparison.png
+notebooks/rating_loss.png
+
+# macOS
+.DS_Store
+
+# Env
+.env

@@ -90,8 +90,21 @@ def train() -> None:
         best_ndcg = -1.0
         patience_ctr = 0
         ckpt_path = os.path.join(CHECKPOINT_DIR, "shared_bottom_best.pt")
+        resume_path = os.path.join(CHECKPOINT_DIR, "shared_bottom_resume.pt")
+        start_epoch = 1
 
-        for epoch in range(1, NUM_EPOCHS + 1):
+        if os.path.exists(resume_path):
+            print(f"Resuming from {resume_path} …")
+            resume = torch.load(resume_path, map_location=DEVICE)
+            model.load_state_dict(resume["model_state"])
+            optimizer.load_state_dict(resume["optimizer_state"])
+            scheduler.load_state_dict(resume["scheduler_state"])
+            start_epoch = resume["epoch"] + 1
+            best_ndcg = resume["best_ndcg"]
+            patience_ctr = resume["patience_ctr"]
+            print(f"  Resumed at epoch {start_epoch}  best_ndcg={best_ndcg:.4f}  patience={patience_ctr}")
+
+        for epoch in range(start_epoch, NUM_EPOCHS + 1):
             model.train()
             total_loss_sum = click_loss_sum = rating_loss_sum = 0.0
             t0 = time.time()
@@ -152,6 +165,16 @@ def train() -> None:
                 if patience_ctr >= PATIENCE:
                     print(f"Early stopping at epoch {epoch}")
                     break
+
+            # Save resume checkpoint
+            torch.save({
+                "epoch": epoch,
+                "model_state": model.state_dict(),
+                "optimizer_state": optimizer.state_dict(),
+                "scheduler_state": scheduler.state_dict(),
+                "best_ndcg": best_ndcg,
+                "patience_ctr": patience_ctr,
+            }, resume_path)
 
         # ── Test ──────────────────────────────────────────────────────────────
         print("\nLoading best checkpoint for test evaluation …")

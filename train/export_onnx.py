@@ -56,7 +56,9 @@ def export(onnx_path: str = ONNX_MODEL_PATH) -> None:
 
     # ── Dummy inputs ───────────────────────────────────────────────────────────
     K = 100  # number of candidates (must match serving layer)
-    dummy_seq = torch.zeros(1, MAX_SEQ_LEN, dtype=torch.long)
+    # Use non-zero sequence so softmax doesn't NaN on fully-padded input
+    dummy_seq = torch.arange(1, MAX_SEQ_LEN + 1, dtype=torch.long).unsqueeze(0) % (num_items + 1)
+    dummy_seq[dummy_seq == 0] = 1
     dummy_candidates = torch.arange(1, K + 1, dtype=torch.long).unsqueeze(0)
 
     # Verify the model runs
@@ -64,10 +66,68 @@ def export(onnx_path: str = ONNX_MODEL_PATH) -> None:
         out = model.forward_onnx(dummy_seq, dummy_candidates)
     print(f"  Test forward OK — output shape: {out.shape}")
 
+    # ── Patch attention blocks for ONNX compatibility ──────────────────────────
+    # nn.MultiheadAttention uses _native_multi_head_attention (fused kernel)
+    # which is not ONNX-serializable. Replace with a manual implementation
+    # using only primitive ops that ONNX can handle.
+    import types
+    import torch.nn.functional as F
+
+    def _patched_sasrec_block_forward(self, x, key_padding_mask):
+        B, T, d_model = x.shape
+        num_heads = self.attn.num_heads
+        head_dim = d_model // num_heads
+        scale = head_dim ** -0.5
+
+        causal_mask = torch.triu(
+            torch.ones(T, T, device=x.device, dtype=torch.bool), diagonal=1
+        )
+
+        # Self-attention sub-layer
+        residual = x
+        x = self.norm1(x)
+
+        # Manual QKV projection and multi-head attention
+        qkv = F.linear(x, self.attn.in_proj_weight, self.attn.in_proj_bias)
+        q, k, v = qkv.chunk(3, dim=-1)
+        q = q.view(B, T, num_heads, head_dim).transpose(1, 2)  # (B, H, T, Dh)
+        k = k.view(B, T, num_heads, head_dim).transpose(1, 2)
+        v = v.view(B, T, num_heads, head_dim).transpose(1, 2)
+
+        scores = torch.matmul(q, k.transpose(-2, -1)) * scale  # (B, H, T, T)
+        # Apply causal mask
+        scores = scores + causal_mask.unsqueeze(0).unsqueeze(0).float() * -1e9
+        # Apply key padding mask
+        scores = scores + key_padding_mask.unsqueeze(1).unsqueeze(2).float() * -1e9
+
+        attn_w = torch.softmax(scores, dim=-1)
+        out = torch.matmul(attn_w, v)                               # (B, H, T, Dh)
+        out = out.transpose(1, 2).contiguous().view(B, T, d_model)  # (B, T, d_model)
+        out = F.linear(out, self.attn.out_proj.weight, self.attn.out_proj.bias)
+
+        x = self.dropout(out) + residual
+
+        # FFN sub-layer
+        residual = x
+        x = self.norm2(x)
+        x = self.ffn(x) + residual
+        return x
+
+    for block in model.encoder.blocks:
+        block.forward = types.MethodType(_patched_sasrec_block_forward, block)
+
     # ── Export ─────────────────────────────────────────────────────────────────
+    # Wrap model so legacy exporter calls forward_onnx instead of forward
+    class OnnxWrapper(torch.nn.Module):
+        def __init__(self, m):
+            super().__init__()
+            self.m = m
+        def forward(self, seq, candidates):
+            return self.m.forward_onnx(seq, candidates)
+
     print(f"Exporting to {onnx_path} …")
     torch.onnx.export(
-        model,
+        OnnxWrapper(model),
         args=(dummy_seq, dummy_candidates),
         f=onnx_path,
         export_params=True,
@@ -80,6 +140,7 @@ def export(onnx_path: str = ONNX_MODEL_PATH) -> None:
             "candidates": {0: "batch_size", 1: "num_candidates"},
             "scores":     {0: "batch_size", 1: "num_candidates"},
         },
+        dynamo=False,
     )
 
     # ── Verify with ONNX Runtime ───────────────────────────────────────────────

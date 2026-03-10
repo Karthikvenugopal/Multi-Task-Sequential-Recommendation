@@ -1,0 +1,44 @@
+{
+  "dataset": "Amazon Reviews 2023 — Movies & TV",
+  "eval_protocol": "leave-one-out, 99 sampled negatives per positive",
+  "date": "2026-03-10",
+  "runs": [
+    {
+      "model": "SASRec",
+      "run_name": "sasrec",
+      "mlflow_run_id": "c49552d259974bcc83d3c88906c8588b",
+      "test_NDCG_at_10": 0.5003775227156793,
+      "test_HR_at_10": 0.7057370600632086,
+      "test_MAE": null,
+      "best_val_NDCG_at_10": null,
+      "checkpoint": "checkpoints/sasrec_best.pt"
+    },
+    {
+      "model": "SharedBottom",
+      "run_name": "shared_bottom",
+      "mlflow_run_id": "66e2dd9f343d428f9a865d27c85a9a4f",
+      "test_NDCG_at_10": 0.52752970914833,
+      "test_HR_at_10": 0.7348864215841862,
+      "test_MAE": 0.9634714022394469,
+      "best_val_NDCG_at_10": 0.5693,
+      "checkpoint": "checkpoints/shared_bottom_best.pt"
+    },
+    {
+      "model": "MMoE",
+      "run_name": "mmoe",
+      "mlflow_run_id": "7b1d38603096434793678cd58b8422d3",
+      "test_NDCG_at_10": 0.5110606382632911,
+      "test_HR_at_10": 0.7190692301096749,
+      "test_MAE": 0.95463865154779,
+      "best_val_NDCG_at_10": 0.5487,
+      "checkpoint": "checkpoints/mmoe_best.pt",
+      "onnx": "checkpoints/mmoe_best.onnx"
+    }
+  ],
+  "notes": [
+    "SharedBottom outperformed MMoE on test (0.5275 vs 0.5111 NDCG@10).",
+    "MMoE showed a larger val->test gap (0.5487->0.5111) vs SharedBottom (0.5693->0.5275), consistent with negative transfer.",
+    "PLE (train/train_ple.py) is implemented as the next experiment to address this.",
+    "Earlier runs (run_ids c92c549e, 40914cdc) were partial/earlier-config runs — not canonical."
+  ]
+}

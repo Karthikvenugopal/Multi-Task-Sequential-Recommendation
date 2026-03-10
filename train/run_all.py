@@ -27,6 +27,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-download", action="store_true")
     parser.add_argument("--skip-preprocess", action="store_true")
+    parser.add_argument("--skip-sasrec", action="store_true")
     args = parser.parse_args()
 
     if not args.skip_download:
@@ -35,9 +36,11 @@ def main() -> None:
     if not args.skip_preprocess:
         run("python data/preprocess.py")
 
-    run("python train/train_sasrec.py")
+    if not args.skip_sasrec:
+        run("python train/train_sasrec.py")
     run("python train/train_shared_bottom.py")
     run("python train/train_mmoe.py")
+    run("python train/train_ple.py")
     run("python train/export_onnx.py")
 
     print("\n\nAll done! Start the serving layer with:")

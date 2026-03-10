@@ -31,12 +31,16 @@ DROPOUT = 0.2
 NUM_EXPERTS = 4           # MMoE expert count
 EXPERT_DIM = 128          # hidden dim of each expert FFN
 
+# PLE (Progressive Layered Extraction)
+NUM_SHARED_EXPERTS = 2    # PLE shared experts (across all tasks)
+NUM_SPECIFIC_EXPERTS = 2  # PLE task-specific experts (per task)
+
 # ── Training ───────────────────────────────────────────────────────────────────
 BATCH_SIZE = 512
 NUM_EPOCHS = 50
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
-PATIENCE = 5              # early-stopping patience (epochs)
+PATIENCE = 10             # early-stopping patience (epochs)
 
 # MTL loss weights  (click_loss * w_click + rating_loss * w_rating)
 W_CLICK = 1.0
@@ -49,6 +53,7 @@ MLFLOW_TRACKING_URI = f"file://{MLFLOW_DIR}"
 # ── Serving ────────────────────────────────────────────────────────────────────
 ONNX_MODEL_PATH = os.path.join(CHECKPOINT_DIR, "mmoe_best.onnx")
 BEST_MMOE_CKPT = os.path.join(CHECKPOINT_DIR, "mmoe_best.pt")
+BEST_PLE_CKPT = os.path.join(CHECKPOINT_DIR, "ple_best.pt")
 VOCAB_PATH = os.path.join(PROCESSED_DATA_PATH, "vocab.pkl")
 
 # ── Device ─────────────────────────────────────────────────────────────────────

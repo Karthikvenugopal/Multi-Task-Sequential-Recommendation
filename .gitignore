@@ -15,11 +15,13 @@ data/*.jsonl
 
 # Model artifacts
 checkpoints/
+checkpoints_backup/
 *.pt
 *.onnx
 
 # MLflow
 mlruns/
+mlruns_backup/
 
 # Jupyter
 .ipynb_checkpoints/

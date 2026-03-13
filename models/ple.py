@@ -258,3 +258,9 @@ class PLEMTLModel(nn.Module):
         click_scores = self._click_scores(click_repr, candidates)
         ratings = self.rating_tower(rating_repr).squeeze(-1).clamp(1.0, 5.0)
         return click_scores, ratings
+
+    def forward_onnx(
+        self, seq: torch.Tensor, candidates: torch.Tensor
+    ) -> torch.Tensor:
+        """Single-output forward for ONNX export — returns click scores only."""
+        return self.predict_click(seq, candidates)

@@ -13,11 +13,11 @@ This project mirrors the core recommendation stack used at short-video and conte
 | SASRec (single-task) | 0.5004 | 0.7057 | — | — |
 | SASRec + Shared-Bottom | 0.5275 | 0.7349 | 0.9635 | 0.5693 |
 | SASRec + MMoE | 0.5111 | 0.7191 | 0.9546 | 0.5487 |
-| **SASRec + PLE** | — | — | — | — |
+| **SASRec + PLE** | **0.5156** | **0.7227** | **0.9572** | **0.5549** |
 
 > All metrics evaluated on the held-out test split with 99 sampled negatives per positive.
 
-**Why SharedBottom outperformed MMoE:** MMoE exhibited a larger validation→test generalisation gap (0.5487 → 0.5111 vs 0.5693 → 0.5275), consistent with *negative transfer* — the shared expert pool is jointly updated by both task gradients, which can interfere when task objectives conflict. PLE addresses this by separating task-specific experts from shared experts, giving each task a private gradient subspace.
+**Key findings:** SharedBottom remains the strongest model (NDCG@10 0.5275). PLE outperforms MMoE (+0.45pp NDCG@10) as expected — task-specific experts reduce negative transfer — but does not surpass SharedBottom (-1.19pp). The val→test gaps are similar across all models (~0.04), ruling out overfitting. The likely explanation is dataset scale: Amazon Movies & TV is relatively small for PLE's additional parameters, and SharedBottom's hard parameter sharing acts as an implicit regularizer on sparse data.
 
 ---
 

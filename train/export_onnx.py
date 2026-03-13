@@ -1,5 +1,5 @@
 """
-Export the best MMoE model checkpoint to ONNX format.
+Export the best PLE model checkpoint to ONNX format.
 
 The exported model:
     Inputs:
@@ -20,12 +20,13 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
-    BEST_MMOE_CKPT, CHECKPOINT_DIR, DEVICE, EMBED_DIM, DROPOUT,
-    EXPERT_DIM, MAX_SEQ_LEN, NUM_BLOCKS, NUM_EXPERTS, NUM_HEADS,
+    BEST_PLE_CKPT, CHECKPOINT_DIR, DEVICE, EMBED_DIM, DROPOUT,
+    EXPERT_DIM, MAX_SEQ_LEN, NUM_BLOCKS, NUM_HEADS,
+    NUM_SHARED_EXPERTS, NUM_SPECIFIC_EXPERTS,
     ONNX_MODEL_PATH, PROCESSED_DATA_PATH, W_CLICK, W_RATING,
 )
 from data.dataset import load_data
-from models.mmoe import MMoEMTL
+from models.ple import PLEMTLModel
 
 
 def export(onnx_path: str = ONNX_MODEL_PATH) -> None:
@@ -38,20 +39,21 @@ def export(onnx_path: str = ONNX_MODEL_PATH) -> None:
     print(f"  num_items = {num_items:,}")
 
     # ── Load model ─────────────────────────────────────────────────────────────
-    print(f"Loading MMoE checkpoint from {BEST_MMOE_CKPT} …")
-    model = MMoEMTL(
+    print(f"Loading PLE checkpoint from {BEST_PLE_CKPT} …")
+    model = PLEMTLModel(
         num_items=num_items,
         d_model=EMBED_DIM,
         num_heads=NUM_HEADS,
         num_blocks=NUM_BLOCKS,
         max_len=MAX_SEQ_LEN,
         dropout=DROPOUT,
-        num_experts=NUM_EXPERTS,
+        num_shared=NUM_SHARED_EXPERTS,
+        num_specific=NUM_SPECIFIC_EXPERTS,
         expert_dim=EXPERT_DIM,
         w_click=W_CLICK,
         w_rating=W_RATING,
     )
-    model.load_state_dict(torch.load(BEST_MMOE_CKPT, map_location="cpu"))
+    model.load_state_dict(torch.load(BEST_PLE_CKPT, map_location="cpu"))
     model.eval()
 
     # ── Dummy inputs ───────────────────────────────────────────────────────────

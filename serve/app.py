@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Multi-Task Sequential Recommender",
     description=(
-        "SASRec + MMoE recommendation API. "
+        "SASRec + PLE multi-task recommendation API. "
         "Accepts a user interaction history and returns top-K items."
     ),
     version="1.0.0",
@@ -177,7 +177,7 @@ def info() -> InfoResponse:
     rec = _get_recommender()
     from config import MAX_SEQ_LEN
     return InfoResponse(
-        model="SASRec + MMoE (multi-task)",
+        model="SASRec + PLE (multi-task)",
         num_items=rec.num_items,
         max_seq_len=MAX_SEQ_LEN,
         onnx_path=ONNX_MODEL_PATH,
